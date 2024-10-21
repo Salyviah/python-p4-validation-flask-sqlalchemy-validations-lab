@@ -1,9 +1,23 @@
-#!/usr/bin/env python3
+import pytest
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
+from models import Base, Author, Post
 
-def pytest_itemcollected(item):
-    par = item.parent.obj
-    node = item.obj
-    pref = par.__doc__.strip() if par.__doc__ else par.__class__.__name__
-    suf = node.__doc__.strip() if node.__doc__ else node.__name__
-    if pref or suf:
-        item._nodeid = ' '.join((pref, suf))
+# Create an in-memory SQLite database for testing
+@pytest.fixture(scope='module')
+def engine():
+    engine = create_engine('sqlite:///:memory:')
+    Base.metadata.create_all(engine)
+    return engine
+
+@pytest.fixture(scope='module')
+def Session(engine):
+    return sessionmaker(bind=engine)
+
+@pytest.fixture(scope='function')
+def session(Session):
+    session = Session()
+    yield session
+    session.rollback()
+    session.close()
+
